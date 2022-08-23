@@ -15,7 +15,7 @@ import (
 )
 
 const Namespace = "/system"
-const DesKey = "aluka-7-!lsRs#m"
+const DesKey = "aluka-7!"
 
 // NewStoreConfig 提供给所有业务系统使用的配置管理引擎，所有业务系统/中间件的可变配置通过集中配置中心进行统一
 // 配置，业务系统可通过该类来管理 自己的配置数据并在配置中心的数据发生变化时得到及时的通知。
