@@ -58,7 +58,7 @@ func MockEngine(t *testing.T, conf backends.StoreConfig) Configuration {
 	return &configuration{store}
 }
 
-//Engine 获取配置管理引擎的唯一实例。
+// Engine 获取配置管理引擎的唯一实例。
 func Engine(conf backends.StoreConfig) Configuration {
 	fmt.Println("Loading Aluka configuration Engine")
 	store, err := backends.New(conf)
@@ -73,10 +73,46 @@ type Configuration interface {
 	String(app, group, tag, path string) (string, error)
 	Clazz(app, group, tag, path string, clazz interface{}) error
 	Get(app, group, tag string, path []string, parser ChangedListener)
+	Add(app, group, tag, path string, value []byte) (string, error)
+	Modify(app, group, tag, path string, value []byte) error
+	Delete(app, group, tag, path string) error
 }
 
 type configuration struct {
 	store backends.StoreClient
+}
+
+func (c configuration) Add(app, group, tag, path string, value []byte) (string, error) {
+	path = c.maskPath(app, group, tag, path)
+	s, err := c.store.Add(path, value)
+	if err != nil {
+		log.Err(err).Msgf("创建[%s]的配置信息出错:%+v", path, err)
+	} else {
+		log.Info().Msgf("创建配置项:%+v", s)
+	}
+	return s, err
+}
+
+func (c configuration) Modify(app, group, tag, path string, value []byte) error {
+	path = c.maskPath(app, group, tag, path)
+	err := c.store.Modify(path, value)
+	if err != nil {
+		log.Err(err).Msgf("更新[%s]的配置信息出错:%+v", path, err)
+	} else {
+		log.Info().Msgf("更新配置项:%+v", path)
+	}
+	return err
+}
+
+func (c configuration) Delete(app, group, tag, path string) error {
+	path = c.maskPath(app, group, tag, path)
+	err := c.store.Delete(path)
+	if err != nil {
+		log.Err(err).Msgf("删除[%s]的配置信息出错:%+v", path, err)
+	} else {
+		log.Info().Msgf("删除配置项:%+v", path)
+	}
+	return err
 }
 
 func (configuration) maskPath(app, group, tag, path string) string {
@@ -103,7 +139,7 @@ func (c configuration) Values(app, group, tag string, path []string) (map[string
 	return vl, err
 }
 
-//String 获取指定配置项的配置信息，返回原始的配置数据格式，如果获取失败则抛出异常。
+// String 获取指定配置项的配置信息，返回原始的配置数据格式，如果获取失败则抛出异常。
 func (c configuration) String(app, group, tag, path string) (string, error) {
 	path = c.maskPath(app, group, tag, path)
 	vl, err := c.store.GetValues([]string{path})
@@ -115,7 +151,7 @@ func (c configuration) String(app, group, tag, path string) (string, error) {
 	return vl[path], err
 }
 
-//Clazz 获取指定配置项的配置信息，并且将配置信息（JSON格式的）转换为指定的Go结构体，如果获取失败或转换失败则抛出异常。
+// Clazz 获取指定配置项的配置信息，并且将配置信息（JSON格式的）转换为指定的Go结构体，如果获取失败或转换失败则抛出异常。
 func (c configuration) Clazz(app, group, tag, path string, clazz interface{}) error {
 	path = c.maskPath(app, group, tag, path)
 	vl, err := c.store.GetValues([]string{path})
@@ -142,8 +178,4 @@ func (c configuration) Get(app, group, tag string, path []string, parser Changed
 	}
 	parser.Changed(vl)
 	go WatchProcessor(_path, c.store).Process(parser)
-}
-
-func (c configuration) Add(path string, value []byte) (string, error) {
-	return c.store.Add(path, value)
 }

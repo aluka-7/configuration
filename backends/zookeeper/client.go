@@ -34,15 +34,29 @@ func NewZookeeperClient(machines []string, user, password, openUser, openPasswor
 	}
 	return &Client{c}, nil
 }
+
 func (c *Client) Add(path string, value []byte) (string, error) {
 	// flags有4种取值：
 	// 0:永久，除非手动删除
 	// zk.FlagEphemeral = 1:短暂，session断开则该节点也被删除
 	// zk.FlagSequence  = 2:会自动在节点后面添加序号
 	// 3:Ephemeral和Sequence，即，短暂且自动添加序号
-	var flags int32 = 1
+	var flags int32 = 0
 	return c.client.Create(path, value, flags, zk.WorldACL(zk.PermAll))
 }
+
+func (c *Client) Modify(path string, value []byte) error {
+	_, stat, _ := c.client.Get(path)
+	_, err := c.client.Set(path, value, stat.Version)
+	return err
+}
+
+func (c *Client) Delete(path string) error {
+	_, stat, _ := c.client.Get(path)
+	err := c.client.Delete(path, stat.Version)
+	return err
+}
+
 func (c *Client) GetValues(keys []string) (map[string]string, error) {
 	vars := make(map[string]string)
 	for _, v := range keys {
@@ -58,6 +72,7 @@ func (c *Client) GetValues(keys []string) (map[string]string, error) {
 	}
 	return vars, nil
 }
+
 func (c *Client) WatchPrefix(keys []string, waitIndex uint64, stopChan chan bool) (uint64, error) {
 	// return something > 0 to trigger a key retrieval from the store
 	if waitIndex == 0 {

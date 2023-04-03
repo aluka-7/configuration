@@ -8,7 +8,15 @@ type Client struct {
 	store map[string]string
 }
 
+func (c Client) Delete(path string) error {
+	panic("implement me")
+}
+
 func (c Client) Add(path string, value []byte) (string, error) {
+	panic("implement me")
+}
+
+func (c Client) Modify(path string, value []byte) error {
 	panic("implement me")
 }
 

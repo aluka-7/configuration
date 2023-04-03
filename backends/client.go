@@ -19,6 +19,8 @@ type StoreClient interface {
 	GetValues(keys []string) (map[string]string, error)
 	WatchPrefix(keys []string, waitIndex uint64, stopChan chan bool) (uint64, error)
 	Add(path string, value []byte) (string, error)
+	Modify(path string, value []byte) error
+	Delete(path string) error
 }
 
 // New is used to create a storage client based on our configuration.
