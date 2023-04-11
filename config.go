@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/samuel/go-zookeeper/zk"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -73,6 +74,7 @@ type Configuration interface {
 	String(app, group, tag, path string) (string, error)
 	Clazz(app, group, tag, path string, clazz interface{}) error
 	Get(app, group, tag string, path []string, parser ChangedListener)
+	Lock(app, group, tag, path string) *zk.Lock
 	Add(app, group, tag, path string, value []byte) (string, error)
 	Modify(app, group, tag, path string, value []byte) error
 	Delete(app, group, tag, path string) error
@@ -80,6 +82,11 @@ type Configuration interface {
 
 type configuration struct {
 	store backends.StoreClient
+}
+
+func (c configuration) Lock(app, group, tag, path string) *zk.Lock {
+	path = c.maskPath(app, group, tag, path)
+	return c.store.Lock(path)
 }
 
 func (c configuration) Add(app, group, tag, path string, value []byte) (string, error) {

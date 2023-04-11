@@ -35,6 +35,10 @@ func NewZookeeperClient(machines []string, user, password, openUser, openPasswor
 	return &Client{c}, nil
 }
 
+func (c *Client) Lock(path string) *zk.Lock {
+	return zk.NewLock(c.client, path, zk.WorldACL(zk.PermAll))
+}
+
 func (c *Client) Add(path string, value []byte) (string, error) {
 	// flags有4种取值：
 	// 0:永久，除非手动删除

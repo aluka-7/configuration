@@ -3,6 +3,7 @@ package backends
 import (
 	"github.com/aluka-7/configuration/backends/mock"
 	"github.com/aluka-7/configuration/backends/zookeeper"
+	"github.com/samuel/go-zookeeper/zk"
 )
 
 type StoreConfig struct {
@@ -18,6 +19,7 @@ type StoreConfig struct {
 type StoreClient interface {
 	GetValues(keys []string) (map[string]string, error)
 	WatchPrefix(keys []string, waitIndex uint64, stopChan chan bool) (uint64, error)
+	Lock(path string) *zk.Lock
 	Add(path string, value []byte) (string, error)
 	Modify(path string, value []byte) error
 	Delete(path string) error
