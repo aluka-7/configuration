@@ -17,10 +17,11 @@ type StoreConfig struct {
 
 // The StoreClient interface is implemented by objects that can retrieve key/value pairs from a backend store.
 type StoreClient interface {
+	Client() *zk.Conn
 	GetValues(keys []string) (map[string]string, error)
 	WatchPrefix(keys []string, waitIndex uint64, stopChan chan bool) (uint64, error)
 	Lock(path string) *zk.Lock
-	Add(path string, value []byte) (string, error)
+	Add(path string, value []byte, flags int32) (string, error)
 	Modify(path string, value []byte) error
 	Delete(path string) error
 }

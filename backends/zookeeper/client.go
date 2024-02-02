@@ -35,17 +35,20 @@ func NewZookeeperClient(machines []string, user, password, openUser, openPasswor
 	return &Client{c}, nil
 }
 
+func (c *Client) Client() *zk.Conn {
+	return c.client
+}
+
 func (c *Client) Lock(path string) *zk.Lock {
 	return zk.NewLock(c.client, path, zk.WorldACL(zk.PermAll))
 }
 
-func (c *Client) Add(path string, value []byte) (string, error) {
+func (c *Client) Add(path string, value []byte, flags int32) (string, error) {
 	// flags有4种取值：
 	// 0:永久，除非手动删除
 	// zk.FlagEphemeral = 1:短暂，session断开则该节点也被删除
 	// zk.FlagSequence  = 2:会自动在节点后面添加序号
 	// 3:Ephemeral和Sequence，即，短暂且自动添加序号
-	var flags int32 = 0
 	return c.client.Create(path, value, flags, zk.WorldACL(zk.PermAll))
 }
 

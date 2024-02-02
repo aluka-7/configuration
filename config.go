@@ -74,8 +74,9 @@ type Configuration interface {
 	String(app, group, tag, path string) (string, error)
 	Clazz(app, group, tag, path string, clazz interface{}) error
 	Get(app, group, tag string, path []string, parser ChangedListener)
+	Watch(app, group, tag, path string, callback EndpointCacher)
 	Lock(app, group, tag, path string) *zk.Lock
-	Add(app, group, tag, path string, value []byte) (string, error)
+	Add(app, group, tag, path string, value []byte, flags int32) (string, error)
 	Modify(app, group, tag, path string, value []byte) error
 	Delete(app, group, tag, path string) error
 }
@@ -89,9 +90,9 @@ func (c configuration) Lock(app, group, tag, path string) *zk.Lock {
 	return c.store.Lock(path)
 }
 
-func (c configuration) Add(app, group, tag, path string, value []byte) (string, error) {
+func (c configuration) Add(app, group, tag, path string, value []byte, flags int32) (string, error) {
 	path = c.maskPath(app, group, tag, path)
-	s, err := c.store.Add(path, value)
+	s, err := c.store.Add(path, value, flags)
 	if err != nil {
 		log.Err(err).Msgf("创建[%s]的配置信息出错:%+v", path, err)
 	} else {
@@ -185,4 +186,50 @@ func (c configuration) Get(app, group, tag string, path []string, parser Changed
 	}
 	parser.Changed(vl)
 	go WatchProcessor(_path, c.store).Process(parser)
+}
+
+func (c configuration) Watch(app, group, tag, path string, callback EndpointCacher) {
+	path = c.maskPath(app, group, tag, path)
+	if err := c.listService(path, callback); err != nil {
+		return
+	}
+	for {
+		snapshot, _, ch, err := c.store.Client().ChildrenW(path)
+		if err != nil {
+			return
+		}
+		select {
+		case e := <-ch:
+			switch e.Type {
+			case zk.EventNodeCreated, zk.EventNodeChildrenChanged:
+				for _, v := range snapshot {
+					callback.Del(v)
+				}
+				if err := c.listService(path, callback); err != nil {
+					continue
+				}
+			case zk.EventNodeDeleted:
+				for _, v := range snapshot {
+					callback.Del(v)
+				}
+			}
+		}
+	}
+}
+
+func (c configuration) listService(path string, callback EndpointCacher) error {
+	childs, _, err := c.store.Client().Children(path)
+	if err != nil {
+		log.Err(err).Msgf("Children Error")
+		return err
+	}
+	for _, sn := range childs {
+		value, _, err := c.store.Client().Get(fmt.Sprintf("%s/%s", path, sn))
+		if err != nil {
+			log.Err(err).Msgf("Get Error")
+			return err
+		}
+		callback.Add(sn, value)
+	}
+	return nil
 }

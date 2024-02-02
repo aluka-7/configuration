@@ -7,7 +7,7 @@ import (
 	"github.com/aluka-7/configuration/backends"
 )
 
-//ChangedListener 配置数据发生变化时的监听器接口。
+// ChangedListener 配置数据发生变化时的监听器接口。
 type ChangedListener interface {
 	// Changed 指定配置变化后的通知接口，标示变化的路径和变化后的data(变化后的新数据值)。
 	Changed(data map[string]string)
@@ -16,6 +16,13 @@ type ChangedListener interface {
 type Processor interface {
 	Process(listener ChangedListener)
 }
+
+type EndpointCacher interface {
+	Add(string, []byte)
+	Edit(string, []byte)
+	Del(string)
+}
+
 type watchProcessor struct {
 	path     []string
 	stopChan chan bool

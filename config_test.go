@@ -1,11 +1,13 @@
 package configuration_test
 
 import (
+	"encoding/json"
 	"fmt"
-	"testing"
-
 	"github.com/aluka-7/configuration"
 	"github.com/aluka-7/configuration/backends"
+	"os"
+	"os/signal"
+	"testing"
 )
 
 func TestString(t *testing.T) {
@@ -74,4 +76,42 @@ func TestClazz(t *testing.T) {
 	if actual != expected {
 		t.Error("生成的结果不匹配\n", "预期:", expected, "|", "实际:", actual)
 	}
+}
+
+type Server struct {
+	Config ServerConfig
+}
+
+type ServerConfig struct {
+	Addr string `json:"addr"`
+}
+
+func (b *Server) Add(sn string, value []byte) {
+	err := json.Unmarshal(value, &b.Config)
+	if err != nil {
+		return
+	}
+	fmt.Println("Add", sn, string(value))
+}
+
+func (b *Server) Edit(sn string, value []byte) {
+	err := json.Unmarshal(value, &b.Config)
+	if err != nil {
+		return
+	}
+	fmt.Println("Edit", sn, string(value))
+}
+
+func (b *Server) Del(sn string) {
+	fmt.Println("Del", sn)
+}
+
+func TestWatch(t *testing.T) {
+	conf := configuration.DefaultEngine()
+	var server = new(Server)
+	go conf.Watch("test", "game", "", "server", server)
+
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
 }
